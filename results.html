@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4">Search Results</h2>
+
+<div class="row">
+    <div class="col-md-8">
+        {% for video, score in results %}
+        <div class="card mb-3 transcript-card">
+            <div class="row g-0">
+                <div class="col-md-4">
+                    <img src="{{ video.thumbnail }}" class="img-fluid rounded-start h-100">
+                </div>
+                <div class="col-md-8">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ video.title }}</h5>
+                        <p class="card-text text-muted">{{ video.description[:150] }}...</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-primary">Score: {{ "%.2f"|format(score) }}</span>
+                            <a href="{{ url_for('video', vid_id=video.video_id) }}" 
+                               class="btn btn-video">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="col-md-4">
+        <div class="graph-container">
+            <h5 class="mb-3">Cognitive Graph</h5>
+            <img src="{{ graph_url }}" class="img-fluid rounded">
+        </div>
+    </div>
+</div>
+{% endblock %}

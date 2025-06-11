@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="video-container">
+                <iframe id="ytPlayer"
+                        src="https://www.youtube.com/embed/{{ video_id }}?start={{ current_time }}&autoplay=1&enablejsapi=1"
+                        frameborder="0"
+                        allowfullscreen></iframe>
+            </div>
+            <div class="d-flex justify-content-between mt-3">
+                <a href="{{ url_for('video', vid_id=video_id) }}" class="btn btn-video">
+                    Back to Transcript
+                </a>
+                <div class="btn-group">
+                    <button onclick="seekVideo(-30)" class="btn btn-outline-secondary">
+                        -30s
+                    </button>
+                    <button onclick="seekVideo(30)" class="btn btn-outline-secondary">
+                        +30s
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+let player;
+function onYouTubeIframeAPIReady() {
+    player = new YT.Player('ytPlayer', {
+        events: {
+            'onReady': onPlayerReady
+        }
+    });
+}
+
+function onPlayerReady(event) {
+    event.target.playVideo();
+}
+
+function seekVideo(seconds) {
+    const currentTime = player.getCurrentTime();
+    player.seekTo(currentTime + seconds, true);
+}
+</script>
+{% endblock %}

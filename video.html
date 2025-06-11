@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h3 class="card-title">{{ video.title }}</h3>
+                <div class="ratio ratio-16x9 mb-3">
+                    <iframe src="https://www.youtube.com/embed/{{ video.video_id }}?start={{ current_time }}" 
+                            allowfullscreen></iframe>
+                </div>
+                <div class="btn-group">
+                    <a href="{{ url_for('play_video', video_id=video.video_id) }}" 
+                       class="btn btn-video">🎬 Full Screen</a>
+                    <button onclick="analyzeVideo('{{ video.video_id }}')" 
+                            class="btn btn-primary">🕵️ Analyze</button>
+                    <button onclick="enhanceVideo('{{ video.video_id }}')" 
+                            class="btn btn-success">🚀 Enhance</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">Transcript</h4>
+                
+                <form class="mb-3" onsubmit="searchTranscript(); return false;">
+                    <div class="input-group">
+                        <input type="text" id="transcriptSearch" class="form-control" 
+                               placeholder="Search transcript...">
+                        <button class="btn btn-outline-secondary" type="submit">Search</button>
+                    </div>
+                </form>
+                
+                <div class="transcript-container" style="max-height: 500px; overflow-y: auto;">
+                    {% for segment in segments %}
+                    <div class="card mb-2 transcript-segment" 
+                         onclick="playFromTime({{ segment.start }})"
+                         data-start="{{ segment.start }}">
+                        <div class="card-body">
+                            <small class="text-muted">{{ segment.start|format_time }}</small>
+                            <p class="mb-0">{{ segment.text }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div id="analysis-results" class="mt-4"></div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Actions</h5>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('download', vid_id=video.video_id) }}" 
+                       class="btn btn-video">
+                       <i class="bi bi-download"></i> Download Transcript
+                    </a>
+                    <a href="{{ url_for('results') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Results
+                    </a>
+                    <a href="{{ url_for('index') }}" class="btn btn-primary">
+                        <i class="bi bi-search"></i> New Search
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Added Summary Section -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5 class="card-title">📄 Transcript Summary</h5>
+                <p class="card-text">{{ summary }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function playFromTime(time) {
+  window.location.href = `{{ url_for('video', vid_id=video.video_id) }}?t=${time}`;
+}
+
+function searchTranscript() {
+  const term = document.getElementById('transcriptSearch').value.toLowerCase();
+  const segments = document.querySelectorAll('.transcript-segment');
+  
+  segments.forEach(seg => {
+    const text = seg.textContent.toLowerCase();
+    if(text.includes(term)) {
+      seg.classList.add('highlight');
+      seg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      seg.classList.remove('highlight');
+    }
+  });
+}
+
+function enhanceVideo(videoId) {
+    const resultsDiv = document.getElementById('analysis-results');
+    resultsDiv.innerHTML = `
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Enhancement Progress</h5>
+                <div class="progress mb-3">
+                    <div class="progress-bar progress-bar-striped" 
+                         role="progressbar" 
+                         style="width: 0%" 
+                         aria-valuenow="0" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100"></div>
+                </div>
+                <div id="enhancement-logs" class="small text-muted"></div>
+            </div>
+        </div>
+    `;
+
+    fetch('/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ video_id: videoId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultsDiv.innerHTML += `
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h5>🎉 Enhancement Complete!</h5>
+                        <div class="d-grid gap-2">
+                            <a href="/download-enhanced/${videoId}" 
+                               class="btn btn-success btn-lg">
+                               📥 Download Enhanced Video
+                            </a>
+                            <button onclick="analyzeVideo('${videoId}', true)" 
+                                    class="btn btn-primary btn-lg">
+                                🔍 Analyze Enhanced Version
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        resultsDiv.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+    });
+
+    const progressInterval = setInterval(async () => {
+        const response = await fetch('/progress');
+        const { enhance_progress, enhance_logs } = await response.json();
+        
+        const progressBar = document.querySelector('.progress-bar');
+        if (progressBar) {
+            progressBar.style.width = `${enhance_progress}%`;
+            progressBar.setAttribute('aria-valuenow', enhance_progress);
+            document.getElementById('enhancement-logs').innerHTML = 
+                enhance_logs.join('<br>');
+            
+            if (enhance_progress === 100) {
+                clearInterval(progressInterval);
+            }
+        }
+    }, 1000);
+}
+
+async function analyzeVideo(videoId, useEnhanced = false) {
+    const resultsDiv = document.getElementById('analysis-results');
+    resultsDiv.innerHTML = `
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Analysis Progress</h5>
+                <div class="progress mb-3">
+                    <div class="progress-bar" role="progressbar" 
+                         style="width: 0%" aria-valuenow="0" 
+                         aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div id="analysis-logs" class="text-muted small"></div>
+            </div>
+        </div>
+    `;
+
+    const formData = new URLSearchParams();
+    formData.append('video_id', videoId);
+    if(useEnhanced) formData.append('enhanced', 'true');
+
+    try {
+        const analysisResponse = await fetch('/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData
+        });
+
+        const progressInterval = setInterval(async () => {
+            const progressResponse = await fetch('/progress');
+            const { progress, logs } = await progressResponse.json();
+
+            document.querySelector('.progress-bar').style.width = `${progress}%`;
+            document.getElementById('analysis-logs').innerHTML = logs.join('<br>');
+
+            if (progress === 100) {
+                clearInterval(progressInterval);
+                const results = await analysisResponse.json();
+                
+                let html = '<div class="card mt-4"><div class="card-body"><h5>Detected Objects</h5>';
+                results.forEach(item => {
+                    html += `
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <span class="badge bg-primary me-2">${item.timestamp}s</span>
+                            ${item.objects.join(', ')}
+                        </div>
+                        <a href="${item.embed_url}" 
+                           class="btn btn-sm btn-outline-primary"
+                           target="_blank">
+                            Jump to Timestamp
+                        </a>
+                    </div>`;
+                });
+                html += '</div></div>';
+                resultsDiv.innerHTML += html;
+            }
+        }, 1000);
+
+    } catch (error) {
+        resultsDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+    }
+}
+</script>
+{% endblock %}
+
+
+

@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <h1 class="text-center my-5">🎙️ YouTube Multimodal Search</h1>
+
+  <form id="mainForm" method="POST" action="/" onsubmit="return handleFormSubmit(event)">
+    <div class="search-container">
+      <input type="text" id="searchBar" name="query" 
+             class="form-control" 
+             placeholder="Speak or type to search..."
+             autocomplete="off"
+             style="border-radius: 30px; padding: 15px 25px; font-size: 1.1rem;">
+      <div class="suggestions" id="suggestionsList"></div>
+    </div>
+
+    <div class="text-center mt-4">
+      <button type="button" class="btn start-btn" onclick="startListening()">
+        <i class="bi bi-mic"></i> Start Speaking
+      </button>
+      <button type="button" class="btn stop-btn" onclick="stopListening()" disabled>
+        <i class="bi bi-mic-mute"></i> Stop
+      </button>
+    </div>
+  </form>
+
+  {% if error %}
+  <div class="alert alert-danger mt-4">{{ error }}</div>
+  {% endif %}
+</div>
+
+<script>
+let recognition;
+let suggestionTimeout;
+let isSubmitting = false;
+
+if ('webkitSpeechRecognition' in window) {
+  recognition = new webkitSpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onresult = (event) => {
+    let transcript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        transcript += event.results[i][0].transcript;
+      }
+    }
+    if (transcript) {
+      document.getElementById('searchBar').value = transcript.trim();
+      fetchSuggestions();
+    }
+  };
+
+  recognition.onerror = (event) => {
+    console.error('Speech recognition error:', event.error);
+  };
+}
+
+function startListening() {
+  if (recognition) {
+    recognition.start();
+    document.querySelector('.start-btn').disabled = true;
+    document.querySelector('.stop-btn').disabled = false;
+  }
+}
+
+function stopListening() {
+  if (recognition) {
+    recognition.stop();
+    document.querySelector('.start-btn').disabled = false;
+    document.querySelector('.stop-btn').disabled = true;
+  }
+}
+
+function fetchSuggestions() {
+  clearTimeout(suggestionTimeout);
+  suggestionTimeout = setTimeout(() => {
+    const query = document.getElementById('searchBar').value.trim();
+    const suggestionsContainer = document.getElementById('suggestionsList');
+    
+    if (query.length < 2) {
+      suggestionsContainer.style.display = 'none';
+      return;
+    }
+
+    fetch(`/suggest?q=${encodeURIComponent(query)}&_=${Date.now()}`)
+      .then(response => response.json())
+      .then(data => {
+        suggestionsContainer.innerHTML = data.slice(0,5).map(suggestion => `
+          <div class="suggestion-item" onclick="selectSuggestion('${suggestion.replace(/'/g, "\\'")}')">
+            ${suggestion}
+          </div>
+        `).join('');
+        suggestionsContainer.style.display = data.length ? 'block' : 'none';
+      })
+      .catch(error => {
+        suggestionsContainer.style.display = 'none';
+      });
+  }, 100);
+}
+
+function selectSuggestion(suggestion) {
+  document.getElementById('searchBar').value = suggestion;
+  document.getElementById('suggestionsList').style.display = 'none';
+  document.getElementById('mainForm').submit();
+}
+
+function handleFormSubmit(event) {
+  event.preventDefault();
+  if (!isSubmitting) {
+    isSubmitting = true;
+    document.getElementById('mainForm').submit();
+  }
+}
+
+document.getElementById('searchBar').addEventListener('input', fetchSuggestions);
+document.getElementById('searchBar').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    handleFormSubmit(e);
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-container')) {
+    document.getElementById('suggestionsList').style.display = 'none';
+  }
+});
+
+window.addEventListener('load', () => {
+  isSubmitting = false;
+});
+</script>
+
+<style>
+.search-container {
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.suggestions {
+  position: absolute;
+  width: 100%;
+  background: #2d3338;
+  border-radius: 0 0 15px 15px;
+  z-index: 1000;
+  max-height: 300px;
+  overflow-y: auto;
+  display: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.suggestion-item {
+  padding: 12px 20px;
+  cursor: pointer;
+  color: #fff;
+  border-bottom: 1px solid #3b4046;
+  transition: background 0.3s;
+}
+
+.suggestion-item:hover {
+  background: #495057;
+}
+
+.start-btn {
+  background-color: #28a745;
+  color: white;
+  padding: 12px 25px;
+  border-radius: 30px;
+  margin: 10px;
+  border: none;
+}
+
+.stop-btn {
+  background-color: #dc3545;
+  color: white;
+  padding: 12px 25px;
+  border-radius: 30px;
+  margin: 10px;
+  border: none;
+}
+
+#searchBar {
+  background: #2b3035;
+  color: white;
+  border: 1px solid #495057;
+}
+</style>
+{% endblock %}
