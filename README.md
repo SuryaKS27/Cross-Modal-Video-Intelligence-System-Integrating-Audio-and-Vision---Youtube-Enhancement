@@ -116,7 +116,7 @@ http://127.0.0.1:5000/
 
 ## Resources
 
-- **Project Report:** [View Report]([https://drive.google.com/file/d/1nP43fF-41fwQnVr5UtX_QmWKA9emL---/view?pli=1])
+- **Project Report:** [View Report](https://github.com/SuryaKS27/Cross-Modal-Video-Intelligence-System-Integrating-Audio-and-Vision---Youtube-Enhancement/blob/1362ff068c7f355e8fd6ea664db37d5e012b3695/Project%20Report.pdf)
 - **Project Demo:** [Watch Demo](https://drive.google.com/file/d/1nP43fF-41fwQnVr5UtX_QmWKA9emL---/view?pli=1)
 
 ## Author
