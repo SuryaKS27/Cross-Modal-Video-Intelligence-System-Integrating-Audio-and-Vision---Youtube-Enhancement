@@ -116,9 +116,8 @@ http://127.0.0.1:5000/
 
 ## Resources
 
-- **Project Report:** [View Report](https://github.com/yourusername/your-repo/blob/main/AAI%20Project%20Report.pdf)
+- **Project Report:** [View Report]([https://drive.google.com/file/d/1nP43fF-41fwQnVr5UtX_QmWKA9emL---/view?pli=1])
 - **Project Demo:** [Watch Demo](https://github.com/yourusername/your-repo/blob/main/demo.mp4)
-
 
 ## Author
 
