@@ -14,7 +14,7 @@ When tested on 30 curated queries, the BERT-based semantic ranking achieved a 74
 
 [Resources](#resources)
 
-## Installation (Windows)
+## Installation
 
 ### 1. Clone the Repository
 ```bash
@@ -55,7 +55,7 @@ pip install realesrgan
 ### 6. Install FFmpeg (Required for Video Processing)
 Download FFmpeg from [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html) (Windows build).  
 
-## Deployment (Windows)
+## Deployment
 
 ### 1. Set Environment Variables
 Set your YouTube API key in **app.py**
